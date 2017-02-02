@@ -1,7 +1,6 @@
 import os
 
 from flask import Flask, request, jsonify
-from google.cloud import language, vision
 import helper_functions
 
 app = Flask(__name__)
@@ -12,6 +11,16 @@ app = Flask(__name__)
 def handle_google_api_request():
     req = request.get_json(force=True)
     return jsonify(req)
+
+
+@app.route('/nlp', methods=['POST','OPTIONS'])
+@helper_functions.crossdomain(origin='*')
+def handle_nlp_request():
+    req = request.get_json(force=True)
+    first_entity_string = helper_functions.first_entity_str(req['content'])
+    return jsonify({
+        'first_entity_string': first_entity_string
+    })
 
 
 if __name__ == "__main__":
