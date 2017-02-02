@@ -1,0 +1,8 @@
+name: jupyter
+dependencies:
+  - flask
+  - python=2.7.11
+  - requests
+  - pip:
+      - gunicorn
+      - google-cloud
