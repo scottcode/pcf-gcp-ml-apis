@@ -132,7 +132,7 @@ def get_image_labels_from_bytes(image_bytes, limit=DEFAULT_LIMIT):
 
 
 def get_image_labels_from_base64(image_base64, limit=DEFAULT_LIMIT):
-    image_bytes = base64.urlsafe_b64decode(image_base64)
+    image_bytes = base64.urlsafe_b64decode(str(image_base64))
     return get_image_labels_from_bytes(image_bytes, limit=limit)
 
 

@@ -34,7 +34,7 @@ def handle_vision_request():
     """
     req_dict = request.get_json(force=True)
     responses = []
-    for req in req_dict['requests']
+    for req in req_dict['requests']:
         # get maxResults for LABEL_DETECTION
         label_feats = [
             feat for feat in req['features'] if feat['type'] == 'LABEL_DETECTION'
@@ -48,12 +48,13 @@ def handle_vision_request():
                 req['image']['content'],
                 limit
             )
+        # alternatives to 'content' bytes not currently implemented
         else:
             labels = []
         responses.append(
             dict(labelAnnotations=list(map(entity_annotation_to_dict, labels)))
         )
-    return jsonify(responses)
+    return jsonify(dict(responses=responses))
 
 
 if __name__ == "__main__":
