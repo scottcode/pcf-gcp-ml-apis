@@ -5,6 +5,9 @@ import helper_functions
 
 app = Flask(__name__)
 
+@app.route("/")
+def main():
+    return "Hello World!"
 
 @app.route('/api', methods=['POST','OPTIONS'])
 @helper_functions.crossdomain(origin='*')
