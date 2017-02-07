@@ -9,9 +9,11 @@ import base64
 from flask import make_response, request, current_app
 from google.cloud import language
 from google.cloud import vision
+from google.cloud.vision.image import Image
 from google.oauth2.service_account import Credentials
 
 
+DEFAULT_LIMIT = 10
 SERVICE_NAME = 'google-ml-apis'
 SERVICE_INSTANCE_NAME = 'google-ml'
 CREDENTIALS = None
@@ -19,6 +21,19 @@ clients = {
     'nlp': None,
     'vision': None
 }
+vision_features = {
+    v: vision.feature.Feature(v, max_results=10)
+    for k, v in vision.feature.FeatureTypes.__dict__.items()
+    if not k.startswith('_')
+}
+entity_annotation_fields = (
+    'bounds',
+    'description',
+    'locale',
+    'locations',
+    'mid',
+    'score'
+)
 
 
 def get_service_instance_dict():
@@ -26,6 +41,8 @@ def get_service_instance_dict():
     a specific service and instance of that service.
     """
     vc_svcs_str = os.environ.get('VCAP_SERVICES')
+    if vc_svcs_str is None:
+        raise Exception('VCAP_SERVICES not found in environment variables (necessary for credentials)')
     vc_svcs_dict = json.loads(vc_svcs_str)
     svcs = filter(
         lambda s: s.get('name') == SERVICE_INSTANCE_NAME
@@ -90,6 +107,57 @@ def first_entity_str(text):
         return entity_to_str(entity)
     else:
         return ''
+
+
+## Vision: Funcs to get labels
+
+def get_image_labels_from_url(image_url, limit=DEFAULT_LIMIT):
+    """
+    :param image_url: str URL
+    :param limit: int Max number of results to return
+    :return: list of `google.cloud.vision.entity.EntityAnnotation` instances
+    """
+    image = Image(get_vision_client(), source_uri=image_url)
+    return image.detect_labels(limit=limit)
+
+
+def get_image_labels_from_bytes(image_bytes, limit=DEFAULT_LIMIT):
+    """
+    :param image_bytes: str image bytes
+    :param limit: int Max number of results to return
+    :return: list of `google.cloud.vision.entity.EntityAnnotation` instances
+    """
+    image = Image(get_vision_client(), content=image_bytes)
+    return image.detect_labels(limit=limit)
+
+
+def get_image_labels_from_base64(image_base64, limit=DEFAULT_LIMIT):
+    image_bytes = base64.urlsafe_b64decode(str(image_base64))
+    return get_image_labels_from_bytes(image_bytes, limit=limit)
+
+
+def get_image_labels(image, limit=DEFAULT_LIMIT):
+    """
+    :param image: str image URL or bytes
+    :param limit: int Max number of results to return
+    :return: list of `google.cloud.vision.entity.EntityAnnotation` instances
+    """
+    if isinstance(image, basestring) and image.lower().startswith('http'):
+        return get_image_labels_from_url(image, limit=limit)
+    else:
+        return get_image_labels_from_bytes(image, limit=limit)
+
+
+def entity_annotation_to_dict(entity_annotation):
+    """
+
+    :param entity_annotation: type `google.cloud.vision.entity.EntityAnnotation`
+    :return:
+    """
+    return {
+        field: getattr(entity_annotation, field)
+        for field in entity_annotation_fields
+    }
 
 
 def crossdomain(origin=None, methods=None, headers=None,

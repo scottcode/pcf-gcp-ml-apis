@@ -2,6 +2,9 @@ import os
 
 from flask import Flask, request, jsonify
 import helper_functions
+from helper_functions import (
+    DEFAULT_LIMIT, entity_annotation_to_dict
+)
 
 app = Flask(__name__)
 
@@ -24,6 +27,37 @@ def handle_nlp_request():
     return jsonify({
         'first_entity_string': first_entity_string
     })
+
+
+@app.route('/vision', methods=['POST','OPTIONS'])
+@helper_functions.crossdomain(origin='*')
+def handle_vision_request():
+    """Expecting JSON request as outlined in
+    https://cloud.google.com/vision/docs/reference/rest/v1/images/annotate
+    """
+    req_dict = request.get_json(force=True)
+    responses = []
+    for req in req_dict['requests']:
+        # get maxResults for LABEL_DETECTION
+        label_feats = [
+            feat for feat in req['features'] if feat['type'] == 'LABEL_DETECTION'
+        ]
+        if label_feats:
+            limit = label_feats[0].get('maxResults', DEFAULT_LIMIT)
+        else:
+            limit = DEFAULT_LIMIT
+        if 'content' in req['image']:
+            labels = helper_functions.get_image_labels_from_base64(
+                req['image']['content'],
+                limit
+            )
+        # alternatives to 'content' bytes not currently implemented
+        else:
+            labels = []
+        responses.append(
+            dict(labelAnnotations=list(map(entity_annotation_to_dict, labels)))
+        )
+    return jsonify(dict(responses=responses))
 
 
 if __name__ == "__main__":
