@@ -111,6 +111,15 @@ def first_entity_str(text):
 
 ## Vision: Funcs to get labels
 
+def read_image_file_to_byte64_str(image):
+    """
+    Given an image path, returns a byte64 encoded string representation
+    """
+    with open(image, "rb") as img:
+        byte_str = base64.b64encode(img.read())
+    return byte_str
+
+
 def get_image_labels_from_url(image_url, limit=DEFAULT_LIMIT):
     """
     :param image_url: str URL

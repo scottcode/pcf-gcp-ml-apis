@@ -3,9 +3,13 @@
 from __future__ import print_function
 import unittest
 import google_api.google_api_service as google_app
+from google_api.helper_functions import read_image_file_to_byte64_str
+from google_api.helper_functions import * 
 import json
-vision_labels_request_fname = 'vision_request.json'
+import os
 
+cwd = os.path.dirname(__file__)
+vision_labels_request_fname = os.path.join(cwd,'test_data/vision_request.json')
 
 class Test(unittest.TestCase):
 
@@ -41,6 +45,7 @@ class TestVisionEndpoint(unittest.TestCase):
         self.app = google_app.app.test_client()
         with open(vision_labels_request_fname, 'rb') as f:
             self.vision_request = f.read()
+        self.empire_state_image = os.path.join(cwd,'test_data/empire-state-building.jpg')
 
     def test_vision_status(self):
         results = self.app.post('/vision', data=self.vision_request)
@@ -49,7 +54,7 @@ class TestVisionEndpoint(unittest.TestCase):
     def test_vision_labels_request(self):
         results = self.app.post('/vision', data=self.vision_request)
         result_dict = json.loads(results.get_data())
-        print(result_dict)
+        #print(result_dict)
         result_list = result_dict['responses']
         self.assertIsInstance(
             result_list, list,
@@ -59,3 +64,23 @@ class TestVisionEndpoint(unittest.TestCase):
             len(result_list), 0,
             "Expected results but got none"
         )
+
+    def test_empire_state_vision_labels_request(self):
+        """
+        Check if correctly tags empire-state-building image
+        """
+        byte_str = read_image_file_to_byte64_str(self.empire_state_image)
+        data =  json.dumps({"requests": [
+                                            {
+                                                "image": {"content":byte_str},
+                                                "features": [{"type": "LABEL_DETECTION","maxResults": 3}]
+                                            }
+                                        ]
+                            }
+                            )
+        results = self.app.post('/vision',data=data)
+        result_dict = json.loads(results.get_data())
+        img_labels = result_dict['responses'][0]['labelAnnotations']
+        print(img_labels)
+        descriptions = [L['description'].lower() for L in img_labels]
+        self.assertEqual(descriptions,['sky','atmosphere','night'])
