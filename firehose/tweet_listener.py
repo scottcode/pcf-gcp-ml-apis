@@ -18,12 +18,18 @@ r = connect_redis_db()
 
 # twitter compute URL, from manifest
 #SENTIMENT_COMPUTE_URL=os.getenv('SENTIMENT_COMPUTE_URL',None)
+RAW_TWEET_STREAM_CHANNEL = os.getenv('RAW_TWEET_STREAM_CHANNEL',None)
+if not RAW_TWEET_STREAM_CHANNEL:
+    sys.stderr.write('{}\n'.format(
+        "Missing redis channel name to write twitter feed"
+    ))
+
 
 # connect to twitter api
-CONSUMER_KEY=os.getenv('CONSUMER_KEY',None)
-CONSUMER_SECRET=os.getenv('CONSUMER_SECRET',None)
-ACCESS_TOKEN=os.getenv('ACCESS_TOKEN',None)
-ACCESS_TOKEN_SECRET=os.getenv('ACCESS_TOKEN_SECRET',None)
+CONSUMER_KEY = os.getenv('CONSUMER_KEY',None)
+CONSUMER_SECRET = os.getenv('CONSUMER_SECRET',None)
+ACCESS_TOKEN = os.getenv('ACCESS_TOKEN',None)
+ACCESS_TOKEN_SECRET = os.getenv('ACCESS_TOKEN_SECRET',None)
 if not all((CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)):
     sys.stderr.write('{}\n'.format(
         "Missing Twitter credentials in environment variables."
@@ -51,7 +57,7 @@ class CustomStreamListener(tweepy.StreamListener):
     def save_posted_tweet_to_redis(self, tweet, source):
         msg = json.dumps({'text': profanity.censor(tweet['text']),  # for public dashboard
                           'source': source})
-        r.publish('raw_tweet_stream', msg)
+        r.publish(RAW_TWEET_STREAM_CHANNEL, msg)
 
     def english_tweet(self, tweet):
         return tweet.lang == 'en'
