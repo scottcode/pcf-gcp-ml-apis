@@ -91,6 +91,7 @@ def get_vision_client():
 
 
 def get_text_entities(text):
+    """Call google NLP on raw text and returns entities parsed from text"""
     client = get_nlp_client()
     doc = client.document_from_text(text)
     return doc.analyze_entities()
